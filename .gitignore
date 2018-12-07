@@ -1,3 +1,8 @@
+# golden and temp images
+golden
+temp
+
+
 # Logs
 logs
 *.log
