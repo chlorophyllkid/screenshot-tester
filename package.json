@@ -6,7 +6,9 @@
   "author": "Christopher Voigt",
   "main": "index.js",
   "scripts": {
+    "prestart": "rimraf golden",
     "start": "node index.js",
+    "pretest": "rimraf temp",
     "test": "mocha",
     "lint": "eslint --quiet index.js test.js"
   },
@@ -21,6 +23,7 @@
   "devDependencies": {
     "eslint": "^5.10.0",
     "eslint-config-airbnb-base": "^13.1.0",
-    "eslint-plugin-import": "^2.14.0"
+    "eslint-plugin-import": "^2.14.0",
+    "rimraf": "^2.6.2"
   }
 }
