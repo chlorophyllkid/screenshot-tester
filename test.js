@@ -118,7 +118,7 @@ async function takeAndCompareScreenshot(page, url, formatName) {
   const fileName = `${formatName}/${hash.update(url)}`;
   if (!fs.existsSync(`${testDir}/${formatName}`)) fs.mkdirSync(`${testDir}/${formatName}`);
 
-  await page.goto(url);
+  await page.goto(url, { timeout: 0 });
   await page.screenshot({ path: `${testDir}/${fileName}.png` });
 
   return compareScreenshots(fileName);
