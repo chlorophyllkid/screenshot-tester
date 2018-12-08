@@ -1,45 +1,37 @@
 
-const fs = require('fs')
+const fs = require('fs');
 const puppeteer = require('puppeteer');
 const { sha256 } = require('js-sha256');
 
-
-const testDir = 'compare';
 const goldenDir = 'golden';
 
-const server = 'http://127.0.0.1:3000';
+async function takeScreenshot(browser, url, format) {
+  const hash = sha256.create();
+  const fileName = `${format.name}/${hash.update(url)}`;
+  if (!fs.existsSync(`${goldenDir}/${format.name}`)) fs.mkdirSync(`${goldenDir}/${format.name}`);
 
-const routes = [
-  '/pk/base/container'
-];
-
-const formats = [
-  { name: 'wide', width: 800, height: 600 },
-  { name: 'narrow', width: 375, height: 667 }
-];
-
+  const page = await browser.newPage();
+  await page.setViewport({ width: format.width, height: format.height });
+  await page.goto(url);
+  await page.screenshot({ path: `${goldenDir}/${fileName}.png` });
+}
 
 (async () => {
-  let browser, page;
+  if (!fs.existsSync(goldenDir)) fs.mkdirSync(goldenDir);
 
-  await Promise.all(routes.map(async (route) => {
-    browser = await puppeteer.launch();
-    page = await browser.newPage();
+  const config = JSON.parse(fs.readFileSync('./screenshot-config.json', 'utf8'));
+  if (!config.urls) return;
 
-    await Promise.all(formats.map(async (format) => {
-      await page.setViewport({ width: format.width, height: format.height });
+  await Promise.all(config.urls.map(async (url) => {
+    const browser = await puppeteer.launch();
 
-      const hash = sha256.create();
-      let fileName = format.name + '/' + hash.update(route);
-
-      if (!fs.existsSync(goldenDir)) fs.mkdirSync(goldenDir);
-      if (!fs.existsSync(`${goldenDir}/${format.name}`)) fs.mkdirSync(`${goldenDir}/${format.name}`);
-
-      await page.goto(`${server}${route}`);
-      await page.screenshot({ path: `${goldenDir}/${fileName}.png` });
-    }));
+    await takeScreenshot(browser, url, { name: 'Desktop-large', width: 1920, height: 1080 });
+    await takeScreenshot(browser, url, { name: 'Desktop-small', width: 1200, height: 900 });
+    await takeScreenshot(browser, url, { name: 'iPad', width: 768, height: 1024 });
+    await takeScreenshot(browser, url, { name: 'iPad-landscape', width: 1024, height: 768 });
+    await takeScreenshot(browser, url, { name: 'iPhone5', width: 320, height: 568 });
+    await takeScreenshot(browser, url, { name: 'iPhone5-landscape', width: 568, height: 320 });
 
     browser.close();
   }));
-
 })();

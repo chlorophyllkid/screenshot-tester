@@ -1,22 +1,30 @@
+/* global describe, it, before, after, beforeEach, afterEach */
 
 const fs = require('fs');
 const puppeteer = require('puppeteer');
-const expect = require('chai').expect;
+const pixelmatch = require('pixelmatch');
+const { PNG } = require('pngjs');
+const { expect } = require('chai');
+const { sha256 } = require('js-sha256');
 
 const testDir = 'temp';
 const goldenDir = 'golden';
 
 describe('👀 screenshots are correct', () => {
-  let browser, page;
+  let browser;
+  let page;
+
+  const config = JSON.parse(fs.readFileSync('./screenshot-config.json', 'utf8'));
+  if (!config.urls) return;
 
   before(async () => {
     if (!fs.existsSync(testDir)) fs.mkdirSync(testDir);
-    if (!fs.existsSync(`${testDir}/wide`)) fs.mkdirSync(`${testDir}/wide`);
-    if (!fs.existsSync(`${testDir}/narrow`)) fs.mkdirSync(`${testDir}/narrow`);
-
-    if (!fs.existsSync(goldenDir)) fs.mkdirSync(goldenDir);
-    if (!fs.existsSync(`${goldenDir}/wide`)) fs.mkdirSync(`${goldenDir}/wide`);
-    if (!fs.existsSync(`${goldenDir}/narrow`)) fs.mkdirSync(`${goldenDir}/narrow`);
+    if (!fs.existsSync(`${testDir}/Desktop-large`)) fs.mkdirSync(`${testDir}/Desktop-large`);
+    if (!fs.existsSync(`${testDir}/Desktop-small`)) fs.mkdirSync(`${testDir}/Desktop-small`);
+    if (!fs.existsSync(`${testDir}/iPad`)) fs.mkdirSync(`${testDir}/iPad`);
+    if (!fs.existsSync(`${testDir}/iPad-landscape`)) fs.mkdirSync(`${testDir}/iPad-landscape`);
+    if (!fs.existsSync(`${testDir}/iPhone5`)) fs.mkdirSync(`${testDir}/iPhone5`);
+    if (!fs.existsSync(`${testDir}/iPhone5-landscape`)) fs.mkdirSync(`${testDir}/iPhone5-landscape`);
   });
 
   after(() => {});
@@ -31,65 +39,112 @@ describe('👀 screenshots are correct', () => {
 
   /* TESTS */
 
-  describe('wide screen', () => {
-    beforeEach(async () =>  page.setViewport({width: 800, height: 600}));
+  describe('Desktop-large', async () => {
+    beforeEach(async () => {
+      await page.setViewport({ width: 1920, height: 1080 });
+    });
 
-    it('/pk/base/container', async () => takeAndCompareScreenshot(page, '/pk/base/container/', 'wide'));
-    // ...
+    await Promise.all(config.urls.map(async (url) => {
+      await it(url, async () => {
+        await takeAndCompareScreenshot(page, url, 'Desktop-large');
+      });
+    }));
   });
 
+  describe('Desktop-small', async () => {
+    beforeEach(async () => {
+      await page.setViewport({ width: 1200, height: 900 });
+    });
 
-  describe('narrow screen', () => {
-    beforeEach(async () => page.setViewport({width: 375, height: 667}));
+    await Promise.all(config.urls.map(async (url) => {
+      await it(url, async () => {
+        await takeAndCompareScreenshot(page, url, 'Desktop-small');
+      });
+    }));
+  });
 
-    it('/pk/base/container', async () => takeAndCompareScreenshot(page, '/pk/base/container/', 'narrow'));
-    // ...
+  describe('iPad', async () => {
+    beforeEach(async () => {
+      await page.setViewport({ width: 768, height: 1024 });
+    });
+
+    await Promise.all(config.urls.map(async (url) => {
+      await it(url, async () => {
+        await takeAndCompareScreenshot(page, url, 'iPad');
+      });
+    }));
+  });
+
+  describe('iPad-landscape', async () => {
+    beforeEach(async () => {
+      await page.setViewport({ width: 1024, height: 768 });
+    });
+
+    await Promise.all(config.urls.map(async (url) => {
+      await it(url, async () => {
+        await takeAndCompareScreenshot(page, url, 'iPad-landscape');
+      });
+    }));
+  });
+
+  describe('iPhone5', async () => {
+    beforeEach(async () => {
+      await page.setViewport({ width: 320, height: 568 });
+    });
+
+    await Promise.all(config.urls.map(async (url) => {
+      await it(url, async () => {
+        await takeAndCompareScreenshot(page, url, 'iPhone5');
+      });
+    }));
+  });
+
+  describe('iPhone5-landscape', async () => {
+    beforeEach(async () => {
+      await page.setViewport({ width: 568, height: 320 });
+    });
+
+    await Promise.all(config.urls.map(async (url) => {
+      await it(url, async () => {
+        await takeAndCompareScreenshot(page, url, 'iPhone5-landscape');
+      });
+    }));
   });
 });
 
 
+async function takeAndCompareScreenshot(page, url, formatName) {
+  const hash = sha256.create();
+  const fileName = `${formatName}/${hash.update(url)}`;
+  if (!fs.existsSync(`${testDir}/${formatName}`)) fs.mkdirSync(`${testDir}/${formatName}`);
 
+  await page.goto(url);
+  await page.screenshot({ path: `${testDir}/${fileName}.png` });
 
-// - page is a reference to the Puppeteer page.
-// - route is the path you're loading, which I'm using to name the file.
-// - filePrefix is either "wide" or "narrow", since I'm automatically testing both.
-async function takeAndCompareScreenshot(page, route, filePrefix) {
-  // If you didn't specify a file, use the name of the route.
-  let fileName = filePrefix + '/' + (route ? route : 'index');
-
-  // Start the browser, go to that page, and take a screenshot.
-  await page.goto(`http://127.0.0.1:3000${route}`);
-  await page.screenshot({path: `${testDir}/${fileName}.png`});
-
-  // Test to see if it's right.
   return compareScreenshots(fileName);
 }
 
 
-
-
 function compareScreenshots(fileName) {
-  return new Promise((resolve, reject) => {
-
+  return new Promise((resolve) => {
     const img1 = fs.createReadStream(`${testDir}/${fileName}.png`).pipe(new PNG()).on('parsed', doneReading);
     const img2 = fs.createReadStream(`${goldenDir}/${fileName}.png`).pipe(new PNG()).on('parsed', doneReading);
 
     let filesRead = 0;
-    function doneReading() {
-      // Wait until both files are read.
-      if (++filesRead < 2) return;
 
-      // The files should be the same size.
+    function doneReading() {
+      filesRead += 1;
+      if (filesRead < 2) return;
+
       expect(img1.width, 'image widths are the same').equal(img2.width);
       expect(img1.height, 'image heights are the same').equal(img2.height);
 
-      // Do the visual diff.
-      const diff = new PNG({width: img1.width, height: img2.height});
+      const diff = new PNG({ width: img1.width, height: img2.height });
       const numDiffPixels = pixelmatch(
-          img1.data, img2.data, diff.data, img1.width, img1.height,
-          {threshold: 0.1});
+        img1.data, img2.data, diff.data, img1.width, img1.height,
+        { threshold: 0.1 },
+      );
 
-      // The files should look the same.
       expect(numDiffPixels, 'number of different pixels').equal(0);
       resolve();
     }

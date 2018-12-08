@@ -6,7 +6,8 @@
   "author": "Christopher Voigt",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node index.js",
+    "test": "mocha",
     "lint": "eslint --quiet index.js test.js"
   },
   "dependencies": {
@@ -14,6 +15,7 @@
     "js-sha256": "^0.9.0",
     "mocha": "^5.2.0",
     "pixelmatch": "^4.0.2",
+    "pngjs": "^3.3.3",
     "puppeteer": "^1.11.0"
   },
   "devDependencies": {
