@@ -9,7 +9,7 @@
     "prestart": "rimraf golden",
     "start": "node index.js",
     "pretest": "rimraf temp",
-    "test": "mocha",
+    "test": "mocha --timeout 60000",
     "lint": "eslint --quiet index.js test.js"
   },
   "dependencies": {

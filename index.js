@@ -12,8 +12,8 @@ async function takeScreenshot(browser, url, format) {
 
   const page = await browser.newPage();
   await page.setViewport({ width: format.width, height: format.height });
-  await page.goto(url);
-  await page.screenshot({ path: `${goldenDir}/${fileName}.png` });
+  await page.goto(url, { waitUntil: 'networkidle0', timeout: 0 });
+  await page.screenshot({ path: `${goldenDir}/${fileName}.png`, fullPage: true });
 }
 
 (async () => {

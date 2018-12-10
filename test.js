@@ -118,8 +118,8 @@ async function takeAndCompareScreenshot(page, url, formatName) {
   const fileName = `${formatName}/${hash.update(url)}`;
   if (!fs.existsSync(`${testDir}/${formatName}`)) fs.mkdirSync(`${testDir}/${formatName}`);
 
-  await page.goto(url, { timeout: 0 });
-  await page.screenshot({ path: `${testDir}/${fileName}.png` });
+  await page.goto(url, { waitUntil: 'networkidle0', timeout: 0 });
+  await page.screenshot({ path: `${testDir}/${fileName}.png`, fullPage: true });
 
   return compareScreenshots(fileName);
 }
@@ -139,13 +139,14 @@ function compareScreenshots(fileName) {
       expect(img1.width, 'image widths are the same').equal(img2.width);
       expect(img1.height, 'image heights are the same').equal(img2.height);
 
-      const diff = new PNG({ width: img1.width, height: img2.height });
+      const diff = new PNG({ width: img1.width, height: img1.height });
       const numDiffPixels = pixelmatch(
         img1.data, img2.data, diff.data, img1.width, img1.height,
-        { threshold: 0.1 },
+        { threshold: 1 },
       );
 
       expect(numDiffPixels, 'number of different pixels').equal(0);
+
       resolve();
     }
   });
