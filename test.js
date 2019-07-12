@@ -118,8 +118,8 @@ async function takeAndCompareScreenshot(page, url, formatName) {
   const fileName = `${formatName}/${hash.update(url)}`;
   if (!fs.existsSync(`${testDir}/${formatName}`)) fs.mkdirSync(`${testDir}/${formatName}`);
 
-  await page.goto(url, { waitUntil: 'networkidle0', timeout: 0 });
-  await page.screenshot({ path: `${testDir}/${fileName}.png`, fullPage: true });
+  await page.goto(url, { waitUntil: ['networkidle0', 'domcontentloaded'], timeout: 0 });
+  await page.screenshot({ path: `${testDir}/${fileName}.png`, fullPage: true, omitBackground: true });
 
   return compareScreenshots(fileName);
 }
